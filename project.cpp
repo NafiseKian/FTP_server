@@ -22,7 +22,47 @@
 
 void handleConnection(int socket)
 {
+    char buff[512] = "";
+    std::string command ;
     std::cout << "New connection received on socket: " << socket << std::endl;
+
+    while (true)
+    {
+        memset(buff , 0 , 512);
+        int ret = read(socket , buff , 512);
+        if (ret < 0)
+        {
+            std::cerr<<"error reading the command from socket"<<std::endl;
+            break;
+        }
+        command = buff ;
+
+        if (command.substr(0, 4).compare("list") == 0)
+        {
+            std::cout << "we received a LIST command." << std::endl;
+        }
+        else if (command.substr(0, 3).compare("get") == 0)
+        {
+            std::cout << "we received a GET command." << std::endl;
+        }
+        else if (command.substr(0, 3).compare("put") == 0)
+        {
+            std::cout << "we received a PUT command." << std::endl;
+        }
+        else if (command.substr(0, 3).compare("del") == 0)
+        {
+            std::cout << "we received a DEL command." << std::endl;
+        }
+        else if (command.substr(0, 4).compare("quit") == 0)
+        {
+            std::cout << "we received a QUIT command." << std::endl;
+        }
+        else
+        {
+            std::cout << "Unknown command for the server ! " << std::endl;
+        }
+    }
+    
     close(socket);
 }
 //----------------------------------------------main--------------------------------------------------
