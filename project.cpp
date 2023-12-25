@@ -15,16 +15,46 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <map>
+#include <fstream>
+#include <sstream>
 
 #define PORT 8080
+//--------------------------------------------------------------------------------------------------
 
+std::map<std::string, std::string> users ; 
+
+//-------------------------------------------read user names and passwords----------------------------
+
+
+std::map<std::string, std::string> readUsersData(const std::string& filename) {
+
+    std::map<std::string, std::string> credentials;
+    std::ifstream file(filename);
+    std::string line;
+
+    while (std::getline(file, line))
+    {
+        std::size_t delimiterPos = line.find(':');
+        std::string username = line.substr(0, delimiterPos);
+        std::string password = line.substr(delimiterPos + 1);
+
+        credentials[username] = password;
+    }
+
+    return credentials;
+}
 //--------------------------------------------handle connection---------------------------------------
 
 void handleConnection(int socket)
 {
     char buff[512] = "";
+    int rcnt ; 
     std::string command ;
     std::cout << "New connection received on socket: " << socket << std::endl;
+
+    std::string welcomeMsg = "Welcome user! please autheticate your self by entering user + username + password\n";
+    send(socket, welcomeMsg.c_str(), welcomeMsg.length(), 0);
 
     while (true)
     {
@@ -36,8 +66,28 @@ void handleConnection(int socket)
             break;
         }
         command = buff ;
+        if (command.substr(0, 4).compare("user") == 0)
+        {
+            std::cout << "we received a user command." << std::endl;
+            std::istringstream iss(command);
+            std::string cmd, user, pass;
+            iss >> cmd >> user >> pass; // Extract command, username, password
 
-        if (command.substr(0, 4).compare("list") == 0)
+            auto it = users.find(user);
+            if (it != users.end() && it->second == pass)
+            {
+            // Correct credentials
+            std::string msg = "200 User " + user + " granted access.\n";
+            send(socket, msg.c_str(), msg.length(), 0);
+            }
+            else
+            {
+            // Incorrect credentials
+            std::string msg = "401 Unauthorized.\n";
+            send(socket, msg.c_str(), msg.length(), 0);
+            }
+        }
+        else if (command.substr(0, 4).compare("list") == 0)
         {
             std::cout << "we received a LIST command." << std::endl;
         }
@@ -75,6 +125,8 @@ int main(int argc, char *argv[])
     int port = PORT ;
     std::string directory, password;
     bool dFlag = false, pFlag = false, uFlag = false;
+
+    users = readUsersData("./credentials.txt");
 
     int opt;
     while((opt = getopt(argc, argv, "d:p:u:")) != -1) {
