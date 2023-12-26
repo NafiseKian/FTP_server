@@ -24,6 +24,42 @@
 
 std::map<std::string, std::string> users ; 
 
+
+class userStruct
+{
+    std::string user_name ;
+    std::string password ;
+    bool auth_flag  ;
+
+    public:
+
+    userStruct(std::string user ,std::string  pass , bool flag){
+        user_name = user;
+        password = pass; 
+        auth_flag = flag ;
+    }
+
+    void setUserName(std::string name )
+    {
+        this->user_name = name ;
+    }
+
+    void setPass(std::string pass )
+    {
+        this->password = pass ;
+    }
+
+    void setFlag(bool flag )
+    {
+        this->auth_flag = flag ;
+    }
+
+    bool getFlag()
+    {
+        return this->auth_flag ;
+    }
+};
+
 //-------------------------------------------read user names and passwords----------------------------
 
 
@@ -52,7 +88,9 @@ void handleConnection(int socket)
     int rcnt ; 
     std::string command ;
     std::cout << "New connection received on socket: " << socket << std::endl;
+    userStruct new_user = userStruct("" , "", 0);
 
+    std::string deniedMsg ="You are not allowed to do this action try to authorize first";
     std::string welcomeMsg = "Welcome user! please autheticate your self by entering user + username + password\n";
     send(socket, welcomeMsg.c_str(), welcomeMsg.length(), 0);
 
@@ -72,40 +110,71 @@ void handleConnection(int socket)
             std::istringstream iss(command);
             std::string cmd, user, pass;
             iss >> cmd >> user >> pass; // Extract command, username, password
+        
 
             auto it = users.find(user);
             if (it != users.end() && it->second == pass)
             {
             // Correct credentials
             std::string msg = "200 User " + user + " granted access.\n";
+            new_user.setUserName(user);
+            new_user.setPass(pass);
+            new_user.setFlag(1);
+
             send(socket, msg.c_str(), msg.length(), 0);
             }
             else
             {
             // Incorrect credentials
             std::string msg = "401 Unauthorized.\n";
+            new_user.setFlag(0);
             send(socket, msg.c_str(), msg.length(), 0);
             }
         }
         else if (command.substr(0, 4).compare("list") == 0)
         {
             std::cout << "we received a LIST command." << std::endl;
+            if (new_user.getFlag() == 1){
+
+            }else{
+               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
+            }
         }
         else if (command.substr(0, 3).compare("get") == 0)
         {
             std::cout << "we received a GET command." << std::endl;
+            if (new_user.getFlag() == 1){
+
+            }else{
+               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
+            }
         }
         else if (command.substr(0, 3).compare("put") == 0)
         {
             std::cout << "we received a PUT command." << std::endl;
+            if (new_user.getFlag() == 1){
+
+            }else{
+               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
+            }
         }
         else if (command.substr(0, 3).compare("del") == 0)
         {
             std::cout << "we received a DEL command." << std::endl;
+            if (new_user.getFlag() == 1){
+
+            }else{
+               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
+            }
         }
         else if (command.substr(0, 4).compare("quit") == 0)
         {
             std::cout << "we received a QUIT command." << std::endl;
+            if (new_user.getFlag() == 1){
+
+            }else{
+               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
+            }
         }
         else
         {
