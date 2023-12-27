@@ -18,6 +18,8 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <dirent.h> 
+#include <sys/stat.h>
 
 #define PORT 8080
 //--------------------------------------------------------------------------------------------------
@@ -87,11 +89,13 @@ void handleConnection(int socket)
     char buff[512] = "";
     int rcnt ; 
     std::string command ;
+    std::string directory = "files/";
     std::cout << "New connection received on socket: " << socket << std::endl;
     userStruct new_user = userStruct("" , "", 0);
 
     std::string deniedMsg ="You are not allowed to do this action try to authorize first";
-    std::string welcomeMsg = "Welcome user! please autheticate your self by entering user + username + password\n";
+    std::string welcomeMsg = "Welcome ! autheticate your self by entering -> user <Username> <PASS>\n";
+    
     send(socket, welcomeMsg.c_str(), welcomeMsg.length(), 0);
 
     while (true)
@@ -110,7 +114,7 @@ void handleConnection(int socket)
             std::istringstream iss(command);
             std::string cmd, user, pass;
             iss >> cmd >> user >> pass; // Extract command, username, password
-        
+            
 
             auto it = users.find(user);
             if (it != users.end() && it->second == pass)
@@ -120,7 +124,6 @@ void handleConnection(int socket)
             new_user.setUserName(user);
             new_user.setPass(pass);
             new_user.setFlag(1);
-
             send(socket, msg.c_str(), msg.length(), 0);
             }
             else
@@ -134,8 +137,30 @@ void handleConnection(int socket)
         else if (command.substr(0, 4).compare("list") == 0)
         {
             std::cout << "we received a LIST command." << std::endl;
-            if (new_user.getFlag() == 1){
+            if (new_user.getFlag() == 1)
+            {
+                DIR *dir;
+                struct dirent *ent;
+                struct stat fileStat;
 
+                if ((dir = opendir(directory.c_str())) != NULL)
+                {
+                    while ((ent = readdir(dir)) != NULL)
+                    {
+                        std::string filePath = directory + ent->d_name;
+                        if (stat(filePath.c_str(), &fileStat) == 0 && S_ISREG(fileStat.st_mode))
+                        {
+                            std::string fileInfo = std::string(ent->d_name) + " " + std::to_string(fileStat.st_size) + "\n";
+                            send(socket, fileInfo.c_str(), fileInfo.length(), 0);
+                        }
+                    }
+                    closedir(dir);
+                    send(socket, ".\n", 2, 0); // send '.' to indicate the end of the list
+                } else {
+                    // Error opening directory
+                    std::string errorMsg = "Error opening directory.\n";
+                    send(socket, errorMsg.c_str(), errorMsg.length(), 0);
+                }
             }else{
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
             }
@@ -169,12 +194,11 @@ void handleConnection(int socket)
         }
         else if (command.substr(0, 4).compare("quit") == 0)
         {
+            std::string byeMsg = "Goodbye user ! " ;
             std::cout << "we received a QUIT command." << std::endl;
-            if (new_user.getFlag() == 1){
-
-            }else{
-               send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
-            }
+            send(socket, byeMsg.c_str(), byeMsg.length(), 0);
+            close(socket);
+            
         }
         else
         {
