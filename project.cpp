@@ -169,7 +169,20 @@ void handleConnection(int socket)
         {
             std::cout << "we received a GET command." << std::endl;
             if (new_user.getFlag() == 1){
+                
+                std::istringstream iss(command);
+                std::string cmd, filename;
+                iss >> cmd >> filename; 
 
+                std::ifstream file(directory + filename, std::ifstream::binary);
+                if (file) {
+                    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+                    content += "\r\n.\r\n"; 
+                    send(socket, content.c_str(), content.length(), 0);
+                } else {
+                    std::string errorMsg = "404 File Not Found.\n";
+                    send(socket, errorMsg.c_str(), errorMsg.length(), 0);
+                }
             }else{
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
             }
@@ -187,6 +200,21 @@ void handleConnection(int socket)
         {
             std::cout << "we received a DEL command." << std::endl;
             if (new_user.getFlag() == 1){
+                std::istringstream iss(command);
+                std::string cmd, filename;
+                iss >> cmd >> filename; // Extract command and filename
+
+                std::string filePath = directory + filename;
+                if (remove(filePath.c_str()) == 0)
+                {
+                    std::string successMsg = "200 File " + filename + " deleted.\n";
+                    send(socket, successMsg.c_str(), successMsg.length(), 0);
+                }
+                else
+                {
+                    std::string errorMsg = "404 File " + filename + " not found on the server.\n";
+                    send(socket, errorMsg.c_str(), errorMsg.length(), 0);
+                }
 
             }else{
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
