@@ -175,31 +175,56 @@ void handleConnection(int socket)
                 iss >> cmd >> filename; 
 
                 std::ifstream file(directory + filename, std::ifstream::binary);
-                if (file) {
+                if (file)
+                {
                     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                     content += "\r\n.\r\n"; 
                     send(socket, content.c_str(), content.length(), 0);
-                } else {
+                }
+                else
+                {
                     std::string errorMsg = "404 File Not Found.\n";
                     send(socket, errorMsg.c_str(), errorMsg.length(), 0);
                 }
-            }else{
+            }
+            else
+            {
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
             }
         }
         else if (command.substr(0, 3).compare("put") == 0)
         {
             std::cout << "we received a PUT command." << std::endl;
-            if (new_user.getFlag() == 1){
+            if (new_user.getFlag() == 1)
+            {
 
-            }else{
+                std::istringstream iss(command);
+                std::string cmd, filename;
+                iss >> cmd >> filename; 
+
+                std::ofstream file(directory + filename, std::ofstream::binary);
+                if (file)
+                {
+                    std::string successMsg = "200 " + filename + " file retrieved by server and was saved.\n";
+                    send(socket, successMsg.c_str(), successMsg.length(), 0);
+                }
+                else
+                {
+                    std::string errorMsg = "400 File cannot be saved on server side.\n";
+                    send(socket, errorMsg.c_str(), errorMsg.length(), 0);
+                }
+
+            }
+            else
+            {
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
             }
         }
         else if (command.substr(0, 3).compare("del") == 0)
         {
             std::cout << "we received a DEL command." << std::endl;
-            if (new_user.getFlag() == 1){
+            if (new_user.getFlag() == 1)
+            {
                 std::istringstream iss(command);
                 std::string cmd, filename;
                 iss >> cmd >> filename; // Extract command and filename
@@ -216,7 +241,9 @@ void handleConnection(int socket)
                     send(socket, errorMsg.c_str(), errorMsg.length(), 0);
                 }
 
-            }else{
+            }
+            else
+            {
                send(socket, deniedMsg.c_str(), deniedMsg.length(), 0);
             }
         }
