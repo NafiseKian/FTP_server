@@ -20,11 +20,15 @@
 #include <sstream>
 #include <dirent.h> 
 #include <sys/stat.h>
+#include <mutex>
 
 #define PORT 8080
 //--------------------------------------------------------------------------------------------------
 
-std::map<std::string, std::string> users ; 
+std::map<std::string, std::string> users ;
+std::string directory = "files/";
+std::mutex usersMutex;
+std::mutex userStructMutex; 
 
 
 class userStruct
@@ -89,7 +93,6 @@ void handleConnection(int socket)
     char buff[512] = "";
     int rcnt ; 
     std::string command ;
-    std::string directory = "files/";
     std::cout << "New connection received on socket: " << socket << std::endl;
     userStruct new_user = userStruct("" , "", 0);
 
@@ -115,7 +118,7 @@ void handleConnection(int socket)
             std::string cmd, user, pass;
             iss >> cmd >> user >> pass; // Extract command, username, password
             
-
+            std::lock_guard<std::mutex> lock(userStructMutex);
             auto it = users.find(user);
             if (it != users.end() && it->second == pass)
             {
@@ -142,7 +145,7 @@ void handleConnection(int socket)
                 DIR *dir;
                 struct dirent *ent;
                 struct stat fileStat;
-
+                std::lock_guard<std::mutex> lock(usersMutex);
                 if ((dir = opendir(directory.c_str())) != NULL)
                 {
                     while ((ent = readdir(dir)) != NULL)
@@ -173,7 +176,7 @@ void handleConnection(int socket)
                 std::istringstream iss(command);
                 std::string cmd, filename;
                 iss >> cmd >> filename; 
-
+                std::lock_guard<std::mutex> lock(usersMutex);
                 std::ifstream file(directory + filename, std::ifstream::binary);
                 if (file)
                 {
@@ -201,7 +204,8 @@ void handleConnection(int socket)
                 std::istringstream iss(command);
                 std::string cmd, filename;
                 iss >> cmd >> filename; 
-
+                
+                std::lock_guard<std::mutex> lock(usersMutex);
                 std::ofstream file(directory + filename, std::ofstream::binary);
                 if (file)
                 {
@@ -228,7 +232,8 @@ void handleConnection(int socket)
                 std::istringstream iss(command);
                 std::string cmd, filename;
                 iss >> cmd >> filename; // Extract command and filename
-
+                
+                std::lock_guard<std::mutex> lock(usersMutex);
                 std::string filePath = directory + filename;
                 if (remove(filePath.c_str()) == 0)
                 {
@@ -271,7 +276,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in address;
     int addrlen = sizeof(address);
     int port = PORT ;
-    std::string directory, password;
+    std::string dir, password;
     bool dFlag = false, pFlag = false, uFlag = false;
 
     users = readUsersData("./credentials.txt");
@@ -280,8 +285,9 @@ int main(int argc, char *argv[])
     while((opt = getopt(argc, argv, "d:p:u:")) != -1) {
         switch(opt) {
             case 'd':
-                directory = optarg;
-                std::cout<<"your directory is : "<<directory<<std::endl ;
+                dir = optarg;
+                std::cout<<"your directory is : "<<dir<<std::endl ;
+                directory = dir ;
                 dFlag = true ;
                 break;
             case 'p':
