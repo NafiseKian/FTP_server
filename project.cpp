@@ -203,13 +203,34 @@ void handleConnection(int socket)
 
                 std::istringstream iss(command);
                 std::string cmd, filename;
-                iss >> cmd >> filename; 
-                
-                std::lock_guard<std::mutex> lock(usersMutex);
+                iss >> cmd >> filename; // Extract command and filename
+
                 std::ofstream file(directory + filename, std::ofstream::binary);
                 if (file)
                 {
-                    std::string successMsg = "200 " + filename + " file retrieved by server and was saved.\n";
+                    std::string fileContent;
+                    char buffer[1024];
+
+                    while (true)
+                    {
+                        memset(buffer, 0, 1024);
+                        int bytesReceived = recv(socket, buffer, 1024, 0);
+                        if (bytesReceived <= 0)
+                        {
+                            break;
+                        }
+                        fileContent.append(buffer, bytesReceived);
+
+                        if (fileContent.find(".") != std::string::npos) //if user enter . loop will break and content will be saved
+                        {
+                            break;
+                        }
+                    }
+
+                    file.write(fileContent.c_str(), fileContent.size());
+                    file.close();
+
+                    std::string successMsg = "200 " + std::to_string(fileContent.size()) + " Byte " + filename + " file retrieved by server and was saved.\n";
                     send(socket, successMsg.c_str(), successMsg.length(), 0);
                 }
                 else
@@ -217,6 +238,7 @@ void handleConnection(int socket)
                     std::string errorMsg = "400 File cannot be saved on server side.\n";
                     send(socket, errorMsg.c_str(), errorMsg.length(), 0);
                 }
+        
 
             }
             else
