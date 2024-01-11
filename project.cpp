@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 #include <mutex>
 
-#define PORT 8080
+
 //--------------------------------------------------------------------------------------------------
 
 std::map<std::string, std::string> users ;
@@ -297,7 +297,8 @@ int main(int argc, char *argv[])
     int server_fd, new_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
-    int port = PORT ;
+    int PORT = 8080 ;
+    int port = 0 ;
     std::string dir, password;
     bool dFlag = false, pFlag = false, uFlag = false;
 
@@ -316,6 +317,7 @@ int main(int argc, char *argv[])
                 port = atoi(optarg);
                 std::cout<<"your port is : "<<port<<std::endl ;
                 pFlag = true ;
+                PORT = port ;
                 break;
             case 'u':
                 password = optarg;
